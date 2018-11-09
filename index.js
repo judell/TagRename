@@ -1,5 +1,8 @@
 var allTags = {}
 
+const maxAnnotationsToFetch = 10000
+const maxAnnotationsToRename = 1000
+
 hlib.createUserInputForm(hlib.getById('userContainer'))
 hlib.createApiTokenInputForm(hlib.getById('tokenContainer'))
 
@@ -29,7 +32,7 @@ function rename(tag) {
   let fromTag = tag, toTag = hlib.getById(`_${tag}`).value
   let params = {
     user: hlib.getUser(),
-    max: 500,
+    max: maxAnnotationsToRename,
     tag: fromTag
   }      
   hlib.hApiSearch(params, processRenameResults)
@@ -90,7 +93,7 @@ function processRenameResults(annos, replies) {
 
 let params = {
   user: hlib.getUser(),
-  max: 100
+  max: maxAnnotationsToFetch
 }
 
 if (hlib.getUser()) {
