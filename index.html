@@ -1,0 +1,110 @@
+<!doctype html>
+<html>
+
+<head>
+  <title>Rename Hypothesis tags</title>
+  <link rel="stylesheet" href="https://jonudell.info/hlib/hlib.css">
+  <script src="https://jonudell.info/hlib/hlib.bundle.js" charset="utf-8"></script>
+  <style>
+    button {
+      margin-bottom: 0;
+    }
+  </style>
+</head>
+
+<body>
+
+  <form autocomplete="off">
+    <div class="formContainer">
+      <div class="formField" id="userContainer"></div>
+      <div class="formField" id="tokenContainer"></div>
+    </div>
+  </form>
+
+  <div id="tags"></div>
+
+  <script>
+
+    hlib.createUserInputForm(hlib.getById('userContainer'))
+    hlib.createApiTokenInputForm(hlib.getById('tokenContainer'))
+
+    function tagDiv(tag) {
+      return `<div class="tag" id="${tag}"><a onclick="renameSetup('${tag}')">${tag}</a></div>`
+    }
+
+    function rename(tag) {
+      let fromTag = tag, toTag = hlib.getById(`_${tag}`).value
+      let params = {
+        user: hlib.getUser(),
+        max: 5000,
+        tag: fromTag
+      }
+      hlib.hApiSearch(params, processRenameResults)
+    }
+
+    function renameSetup(tag) {
+      let tagDivs = Array.from(document.querySelectorAll('.tag'))
+      let tags = tagDivs.map(tagDiv => {
+        return tagDiv.innerText
+      })
+      tags.forEach(_tag => {
+        try {
+          cancelSetup(_tag)
+        } catch (e) {
+          console.log(e)
+        }
+      })
+      let element = hlib.getById(tag)
+      element.querySelector('a').setAttribute('onclick', null)
+      element.innerHTML += ` <input class="renamer" id="_${tag}" onchange="rename('${tag}')" ></input> <button onclick="rename('${tag}')">rename</button> <button onclick="cancelSetup('${tag}')">cancel</button>`
+    }
+
+    function cancelSetup(tag) {
+      let element = hlib.getById(tag)
+      element.outerHTML = tagDiv(tag)
+    }
+
+    function processSearchResults(annos, replies) {
+      let allTags = {}
+      annos = annos.concat(replies)
+      annos.forEach(anno => {
+        anno.tags.forEach(tag => {
+          tag = tag.replace(/"/g,'').trim()
+          if (!allTags.hasOwnProperty(tag)) {
+            allTags[tag] = true
+          }
+        })
+      })
+      let tagList = Object.keys(allTags).sort()
+      tagList = tagList.map(tag => {
+        return tagDiv(tag)
+      })
+      hlib.getById('tags').innerHTML += tagList.join('\n')
+    }
+
+    function processRenameResults(annos, replies) {
+      annos = annos.concat(replies)
+      let fromTag = document.querySelector('.renamer').parentElement.id
+      let toTag = document.querySelector('.renamer').value
+      alert(`rename ${fromTag}, ${toTag}`)
+    }
+
+    let params = {
+      user: hlib.getUser(),
+      max: 5000
+    }
+
+    hlib.hApiSearch(params, processSearchResults)
+
+    setTimeout(_ => {
+      let token = hlib.getToken()
+      if (token) {
+        hlib.getById('tokenContainer').style.display = 'none'
+      }
+    }, 500)
+
+  </script>
+
+</body>
+
+</html>
