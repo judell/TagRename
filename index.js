@@ -3,7 +3,7 @@ var allTags = {}
 hlib.createUserInputForm(hlib.getById('userContainer'))
 hlib.createApiTokenInputForm(hlib.getById('tokenContainer'))
 
-function tagDiv(tag) {
+function initializeTagDiv(tag) {
   return `<div class="tag" id="${tag}"><a onclick="addRenameUX('${tag}')">${tag}</a> ${allTags[tag]} </div>`
 }
 
@@ -37,7 +37,7 @@ function rename(tag) {
 
 function cancelSetup(tag) {
   let element = hlib.getById(tag)
-  element.outerHTML = tagDiv(tag)
+  element.outerHTML = initializeTagDiv(tag)
 }
 
 function processSearchResults(annos, replies) {
@@ -54,7 +54,7 @@ function processSearchResults(annos, replies) {
   })
   let tagList = Object.keys(allTags).sort()
   tagList = tagList.map(tag => {
-    return tagDiv(tag)
+    return initializeTagDiv(tag)
   })
   hlib.getById('tags').innerHTML += tagList.join('\n')
   hlib.getById('progress').innerHTML = ''
@@ -93,10 +93,16 @@ let params = {
   max: 100
 }
 
-hlib.hApiSearch(params, processSearchResults, 'progress')
+if (hlib.getUser()) {
+  hlib.hApiSearch(params, processSearchResults, 'progress')
+}
 
 // hide the token input form if token already saved to localStorage
 setTimeout(_ => {
+  if (! hlib.getUser()) {
+    alert('Please enter your Hypothesis username and refresh the page.')
+
+  }
   let token = hlib.getToken()
   if (token) {
     hlib.getById('tokenContainer').style.display = 'none'
