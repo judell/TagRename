@@ -30,11 +30,13 @@
 
   <script>
 
+    var allTags = {}
+
     hlib.createUserInputForm(hlib.getById('userContainer'))
     hlib.createApiTokenInputForm(hlib.getById('tokenContainer'))
 
     function tagDiv(tag) {
-      return `<div class="tag" id="${tag}"><a onclick="renameSetup('${tag}')">${tag}</a></div>`
+      return `<div class="tag" id="${tag}"><a onclick="renameSetup('${tag}')">${tag}</a> ${allTags[tag]} </div>`
     }
 
     function rename(tag) {
@@ -70,13 +72,14 @@
     }
 
     function processSearchResults(annos, replies) {
-      let allTags = {}
       annos = annos.concat(replies)
       annos.forEach(anno => {
         anno.tags.forEach(tag => {
           tag = tag.replace(/"/g,'').trim()
           if (!allTags.hasOwnProperty(tag)) {
-            allTags[tag] = true
+            allTags[tag] = 1
+          } else {
+            allTags[tag] += 1
           }
         })
       })
@@ -92,12 +95,33 @@
       annos = annos.concat(replies)
       let fromTag = document.querySelector('.renamer').parentElement.id
       let toTag = document.querySelector('.renamer').value
-      alert(`rename ${fromTag}, ${toTag}`)
+      for (i = 0; i < annos.length; i++ ) {
+        let anno = annos[i]
+        let tags = anno.tags
+        let _tags = []
+        tags.forEach(tag => {
+          if (tag === fromTag) {
+            tag = toTag
+          }
+          _tags.push(tag)
+        })
+        let payload = {
+          tags: _tags
+        }
+        let payloadJson = JSON.stringify(payload)
+        hlib.updateAnnotation(anno.id, hlib.getToken(), payloadJson)
+          .then(data => {
+            console.log(data)
+            if (i == annos.length) {
+              hlib.getById(fromTag).innerHTML = `<s>${fromTag}</s> ${toTag}`
+            }
+          })
+      }
     }
 
     let params = {
       user: hlib.getUser(),
-      max: 5000
+      max: 100
     }
 
     hlib.hApiSearch(params, processSearchResults, 'progress')
