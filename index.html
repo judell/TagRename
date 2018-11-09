@@ -9,6 +9,9 @@
     button {
       margin-bottom: 0;
     }
+    #progress {
+      font-size: x-large;
+    }
   </style>
 </head>
 
@@ -20,6 +23,8 @@
       <div class="formField" id="tokenContainer"></div>
     </div>
   </form>
+
+  <div id="progress"></div>
 
   <div id="tags"></div>
 
@@ -36,9 +41,9 @@
       let fromTag = tag, toTag = hlib.getById(`_${tag}`).value
       let params = {
         user: hlib.getUser(),
-        max: 5000,
+        max: 500,
         tag: fromTag
-      }
+      }      
       hlib.hApiSearch(params, processRenameResults)
     }
 
@@ -80,6 +85,7 @@
         return tagDiv(tag)
       })
       hlib.getById('tags').innerHTML += tagList.join('\n')
+      hlib.getById('progress').innerHTML = ''
     }
 
     function processRenameResults(annos, replies) {
@@ -94,7 +100,7 @@
       max: 5000
     }
 
-    hlib.hApiSearch(params, processSearchResults)
+    hlib.hApiSearch(params, processSearchResults, 'progress')
 
     setTimeout(_ => {
       let token = hlib.getToken()
