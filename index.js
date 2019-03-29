@@ -1,16 +1,43 @@
-var allTags = {}
+let allTags = {}
 
 const maxAnnotationsToFetch = 10000
 const maxAnnotationsToRename = 1000
 
-hlib.createUserInputForm(hlib.getById('userContainer'))
+const externalLinkStyle = `style="display:inline;width:.6em;height:.6em;margin-left:2px;margin-top:3px;"`
+
+hlib.createUserInputForm(hlib.getById('userContainer'), 'Your Hypothesis username')
+hlib.createTagInputForm(hlib.getById('tagContainer'), 'Leave empty to search all tags')
 hlib.createApiTokenInputForm(hlib.getById('tokenContainer'))
+hlib.getById('searchButton').onclick = search
 
 function initializeTagDiv(tag) {
-  return `<div class="tag" id="${tag}"><a onclick="addRenameUX('${tag}')">${tag}</a> ${allTags[tag]} </div>`
+  const externalLink = renderIcon('icon-external-link', externalLinkStyle)
+  const facetUrl = `https://jonudell.info/h/facet?user=${getUser()}&tag=${tag}&expanded=true&exactTagSearch=true`
+  return `
+    <div class="tag" id="${tag}">
+      <a target="_reviewTag" title="review your use of this tag" href="${facetUrl}"><span class="externalLink">${externalLink}</span></a>
+      <a class="renameableTag" title="click to rename" onclick="addRenameUX('${tag}')">${tag}</a>
+      <span title="count of tag occurrences" class="count">${allTags[tag]}</span>
+    </div>`
+}
+
+function getUser() {
+  return hlib.getSettings().user
+}
+
+function getTag() {
+  return hlib.getSettings().tag
+}
+
+function renderIcon(iconClass, style) {
+  const _style = style ? style : `style="display:block"`
+  return `<svg ${style} class="${iconClass}"><use xlink:href="#${iconClass}"></use></svg>`
 }
 
 function addRenameUX(tag) {
+  if (hlib.getById(`_${tag}`)) {
+    return
+  }
   let tagDivs = Array.from(document.querySelectorAll('.tag'))
   let tags = tagDivs.map(tagDiv => {
     return tagDiv.innerText
@@ -24,18 +51,28 @@ function addRenameUX(tag) {
   })
   let element = hlib.getById(tag)
   element.querySelector('a').setAttribute('onclick', null)
-  element.innerHTML += ` <input class="renamer" id="_${tag}" onchange="rename('${tag}')" ></input> <button onclick="rename('${tag}')">rename</button> <button onclick="cancelSetup('${tag}')">cancel</button>`
+  element.innerHTML += ` 
+    <input class="renamer" id="_${tag}"></input> 
+    <button onclick="rename('${tag}')">rename</button> 
+    <button onclick="cancelSetup('${tag}')">cancel</button>`
 }
 
 // rename an individual tag
 function rename(tag) {
-  let fromTag = tag, toTag = hlib.getById(`_${tag}`).value
+  if (hlib.getById(`_${tag}`).value === '') {
+    alert('Cannot rename to nothing')
+    return
+  }
+  let fromTag = tag
   let params = {
-    user: hlib.getUser(),
+    user: getUser(),
     max: maxAnnotationsToRename,
     tag: fromTag
   }      
-  hlib.hApiSearch(params, processRenameResults)
+  hlib.search(params)
+    .then( data => { 
+      processRenameResults(data[0], data[1]) 
+    })
 }
 
 function cancelSetup(tag) {
@@ -43,19 +80,30 @@ function cancelSetup(tag) {
   element.outerHTML = initializeTagDiv(tag)
 }
 
+function tokenReset() {
+  localStorage.setItem('h_token', '')
+}
+
 function processSearchResults(annos, replies) {
   annos = annos.concat(replies)
+  const _tag = getTag()
   annos.forEach(anno => {
-    anno.tags.forEach(tag => {
+    for (let i = 0; i < anno.tags.length; i++) {
+      let tag = anno.tags[i]
+      if (_tag && tag !== _tag) {
+        continue
+      }
       tag = tag.replace(/"/g,'').trim()
       if (!allTags.hasOwnProperty(tag)) {
         allTags[tag] = 1
       } else {
         allTags[tag] += 1
       }
-    })
+    }
   })
-  let tagList = Object.keys(allTags).sort()
+  let tagList = Object.keys(allTags).sort(function (a, b) {
+    return a.toLowerCase().localeCompare(b.toLowerCase())
+  })
   tagList = tagList.map(tag => {
     return initializeTagDiv(tag)
   })
@@ -91,23 +139,26 @@ function processRenameResults(annos, replies) {
   }
 }
 
-let params = {
-  user: hlib.getUser(),
-  max: maxAnnotationsToFetch
+async function search() {
+  if (!getUser()) {
+    alert('Please provide the Hypothesis username corresponding to the API token')
+    return
+  }
+  allTags = {}
+  hlib.getById('tags').innerHTML = ''
+  let params = {
+    user: getUser(),
+    max: maxAnnotationsToFetch
+  }
+  const tag = getTag()
+  if (tag) {
+    params.tag = tag
+  }
+  const data = await hlib.search(params, 'progress')
+  processSearchResults(data[0], data[1])
 }
 
-if (hlib.getUser()) {
-  hlib.hApiSearch(params, processSearchResults, 'progress')
-}
-
-// hide the token input form if token already saved to localStorage
 setTimeout(_ => {
-  if (! hlib.getUser()) {
-    alert('Please enter your Hypothesis username and refresh the page.')
+  hlib.manageTokenDisplayAndReset()
+}, 200)
 
-  }
-  let token = hlib.getToken()
-  if (token) {
-    hlib.getById('tokenContainer').style.display = 'none'
-  }
-}, 500)
