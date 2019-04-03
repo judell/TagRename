@@ -1,12 +1,10 @@
 let allTags = {}
 
-const maxAnnotationsToFetch = 10000
-const maxAnnotationsToRename = 1000
-
 const externalLinkStyle = `style="display:inline;width:.6em;height:.6em;margin-left:2px;margin-top:3px;"`
 
 hlib.createUserInputForm(hlib.getById('userContainer'), 'Your Hypothesis username')
 hlib.createTagInputForm(hlib.getById('tagContainer'), 'Leave empty to search all tags')
+hlib.createMaxInputForm(hlib.getById('maxContainer'))
 hlib.createApiTokenInputForm(hlib.getById('tokenContainer'))
 hlib.getById('searchButton').onclick = search
 
@@ -66,7 +64,7 @@ function rename(tag) {
   let fromTag = tag
   let params = {
     user: getUser(),
-    max: maxAnnotationsToRename,
+    max: hlib.getSettings().max,
     tag: fromTag
   }      
   hlib.search(params)
@@ -148,7 +146,7 @@ async function search() {
   hlib.getById('tags').innerHTML = ''
   let params = {
     user: getUser(),
-    max: maxAnnotationsToFetch
+    max: hlib.getSettings().max
   }
   const tag = getTag()
   if (tag) {
