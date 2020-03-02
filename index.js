@@ -4,7 +4,7 @@ const externalLinkStyle = `style="display:inline;width:.6em;height:.6em;margin-l
 
 hlib.createUserInputForm(hlib.getById('userContainer'), 'Your Hypothesis username')
 hlib.createTagInputForm(hlib.getById('tagContainer'), 'Leave empty to search all tags')
-hlib.createMaxInputForm(hlib.getById('maxContainer'))
+hlib.createMaxInputForm(hlib.getById('maxContainer'), 'Max annotations to search')
 hlib.createApiTokenInputForm(hlib.getById('tokenContainer'))
 hlib.getById('searchButton').onclick = search
 
